@@ -10,6 +10,28 @@ I used Terraform to create 3 clusters and 3 networks. Each cluster has an associ
 
 I connected the first 2 networks (red and blue) using mutual network-peering routes. I created an additional network peering from green to red (but not vice versa). This made red a "hub" and blue and green became spokes. This allowed green to communicate with blue, through red.
 
+
+```mermaid
+graph TD
+
+	subgraph VNet Red
+		aks-cluster-1
+	end
+	subgraph VNet Blue
+		aks-cluster-2
+	end
+	subgraph VNet Green
+		aks-cluster-3
+	end
+
+    aks-cluster-1 --> aks-cluster-2
+    aks-cluster-2 --> aks-cluster-1
+
+    aks-cluster-1 --> aks-cluster-2
+    aks-cluster-2 --> aks-cluster-3
+    aks-cluster-3 --> aks-cluster-1
+```
+
 This audit.py output shows the hub and spoke connectivity of all three clusters:
 
     Reciprocal Peering Groups:
