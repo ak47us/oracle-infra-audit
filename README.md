@@ -59,6 +59,29 @@ This audit.py output shows what happens when the green-red route does not exist:
     --------------------------------------------------
       - AKS Cluster: aks-cluster-3 (in VNet: vnet-green)
 
+## How to deploy this configuration
+Authenticate your Azure CLI session:
+`sh
+az login ;
+export AZURE_SUBSCRIPTION_ID=$(az account show --query id --output tsv) ;
+export MY_PUBLIC_IP=$(curl -s https://api.ipify.org) ;
+cd ./terraform ;
+terraform init ;
+terraform apply -var "AZURE_SUBSCRIPTION_ID=${AZURE_SUBSCRIPTION_ID}" -var "MY_PUBLIC_IP=${MY_PUBLIC_IP}" -auto-approve ;
+`
+
+Run the audit script to get a routing table and markdown diagram:
+`sh
+cd ../python
+chmod +x audit.py
+./audit.py
+``
+
+Destroy the infra when done:
+`terraform destroy -var "AZURE_SUBSCRIPTION_ID=${AZURE_SUBSCRIPTION_ID}" -var "MY_PUBLIC_IP=${MY_PUBLIC_IP}" -auto-approve ;`
+
+
+
 ## Conclusion
 Azure virtual networks can be used to determine routing connectivity between resources within a resource group. They are particularly useful for creating hub-and-spoke topographies. For analysis, the python audit file's first version simply contains the peering routes to take for two-way traffic. It generates a very crude virtual network routing table.
 
@@ -81,3 +104,57 @@ Later, I ran into a prohibitive Azure Terraform error when attempting to refacto
 This is a billing issue. I did not have enough time to troubleshoot billing.
 
 This first draft of the assignment shows layer 3 connectivity (routing), instead of layer 7 (istio).
+
+## Addendum 2
+I was able to re-factor the code so that it can dynamically generate a diagram of the routing table. To do this, I shifted from an AKS-centric architecture to a normal VM-based architecture. This allowed me to circumvent quotas without needing to engage Azure support. The AKS clusters required too many resources.
+
+If you are unable to provision instances due to an availability issue, use this command to find a different vm size:
+`az vm list-skus --location centralus --size Standard_A --all --output table`
+
+The markdown diagram output also contains a blue Azure container in the diagram, which should help in the event of a multi-cloud audit:
+
+
+
+    Getting networking data...
+    
+    VNet peering routes:
+    --------------------------------------------------
+    - vnet-blue (['10.2.0.0/16']) --> vnet-red (['10.1.0.0/16'])
+    - vnet-blue (['10.2.0.0/16']) --> vnet-green (['10.3.0.0/16'])
+    - vnet-green (['10.3.0.0/16']) --> vnet-red (['10.1.0.0/16'])
+    - vnet-red (['10.1.0.0/16']) --> vnet-blue (['10.2.0.0/16'])
+    
+    Isolated VNets:
+    --------------------------------------------------
+    - vnet-purple ['10.4.0.0/24']
+
+```mermaid
+graph TD
+
+  subgraph Azure
+    subgraph vnet-blue
+      vm-blue
+    end
+    subgraph vnet-green
+      vm-green
+    end
+    subgraph vnet-purple
+      vnet-purple-placeholder["No VMs Found!"]
+    end
+    subgraph vnet-red
+      vm-red
+    end
+      vnet-blue -->|blue_to_red| vnet-red
+      vnet-blue -->|blue_to_green| vnet-green
+      vnet-green -->|green_to_red| vnet-red
+      vnet-red -->|red_to_blue| vnet-blue
+  end
+  %% Apply styles
+  classDef azureCloud fill:#007FFF,stroke:#004C99,stroke-width:2px,color:white;
+  class Azure azureCloud;
+```
+
+Use this for testing ping ability:
+`az extension add --name ssh ;
+az vm ssh --name red --resource-group main-resource-group ; `
+
