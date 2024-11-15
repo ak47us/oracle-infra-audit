@@ -83,7 +83,7 @@ Destroy the infra when done:
 
 
 ## Conclusion
-Azure virtual networks can be used to determine routing connectivity between resources within a resource group. They are particularly useful for creating hub-and-spoke topographies. For analysis, the python audit file's first version simply contains the peering routes to take for two-way traffic. It generates a very crude virtual network routing table.
+Azure virtual networks can be used to determine routing connectivity between resources within a resource group. They are particularly useful for creating hub-and-spoke topographies. For analysis, the python audit file's first version simply contains the peering routes to take for two-way traffic. It generates a very crude virtual network routing table. The python audit code uses a Peering dataclass, which allows the audit code to scale efficiently to other cloud providers by using a common data structure.
 
 ## Addendum
 My first plan was to audit istio connections across clusters, but I did not have enough time to implement it in the allotted window. I would have been required to set up secure PKI, among other time-consuming tasks.
